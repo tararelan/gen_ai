@@ -24,17 +24,22 @@ class Product(BaseModel):
     product_type: Optional[str] = Field(None, description="Product type")
     product_size: Optional[str] = Field(None, description="Product size")
     product_material: Optional[str] = Field(None, description="Product material")
-    product_style: Optional[str] = Field(None, description="Product style")
     product_colour: Optional[str] = Field(None, description="Product colour")
-    product_cuisine: Optional[str] = Field(None, description="Food cuisine")
-    product_venue: Optional[str] = Field(None, description="Event venue")
-    product_salary: Optional[str] = Field(None, description="Job salary")
-    product_education: Optional[str] = Field(None, description="Job education required")
-    product_location: Optional[str] = Field(None, description="Job location")
-    product_skills: Optional[str] = Field(None, description="Job skills required")
-    product_duration: Optional[int] = Field(None, description="Course duration")
-    product_deposit: Optional[float] = Field(None, description="Accommodation deposit")
-    product_rooms: Optional[int] = Field(None, description="Accommodation room number")
+    food_cuisine: Optional[str] = Field(None, description="Food cuisine")
+    event_venue: Optional[str] = Field(None, description="Event venue")
+    job_salary: Optional[str] = Field(None, description="Job salary")
+    job_education: Optional[str] = Field(None, description="Job education required")
+    job_education_location: Optional[str] = Field(None, description="Job location")
+    job_education_skills: Optional[str] = Field(None, description="Job skills required")
+    job_education_duration: Optional[int] = Field(None, description="Course duration")
+    accommodation_deposit: Optional[float] = Field(None, description="Accommodation deposit")
+    accommodation_num_rooms: Optional[int] = Field(None, description="Accommodation number of rooms")
+    accommodation_num_beds: Optional[int] = Field(None, description="Accommodation number of beds")
+    accommodation_num_bathrooms: Optional[int] = Field(None, description="Accommodation number of bathrooms")
+    accommodation_student: Optional[bool] = Field(None, description="Accommodation for students")
+    accommodation_parking: Optional[bool] = Field(None, description="Accommodation parking")
+    accommodation_garden: Optional[bool] = Field(None, description="Accommodation garden")
+    accommodation_new: Optional[bool] = Field(None, description="Accommodation age")
 
 # class ShoppingProduct(Product):
 #     product_size: Optional[str] = Field(None, description="Product size")
@@ -43,30 +48,30 @@ class Product(BaseModel):
 #     product_colour: Optional[str] = Field(None, description="Product colour")
 
 # class FoodProduct(Product):
-#     product_cuisine: Optional[str] = Field(None, description="Food cuisine")
+#     food_cuisine: Optional[str] = Field(None, description="Food cuisine")
 #     product_style: Optional[str] = Field(None, description="Food style")
 
 # class EventProduct(Product):
-#     product_venue: Optional[str] = Field(None, description="Event venue")
+#     event_venue: Optional[str] = Field(None, description="Event venue")
 
 # class JobProduct(Product):
-#     product_salary: Optional[str] = Field(None, description="Job salary")
-#     product_education: Optional[str] = Field(None, description="Job education required")
-#     product_location: Optional[str] = Field(None, description="Job location")
-#     product_skills: Optional[str] = Field(None, description="Job skills required")
+#     job_salary: Optional[str] = Field(None, description="Job salary")
+#     job_education: Optional[str] = Field(None, description="Job education required")
+#     job_education_location: Optional[str] = Field(None, description="Job location")
+#     job_education_skills: Optional[str] = Field(None, description="Job skills required")
 
 # class DiscountCardProduct(Product):
 #     product_category: Optional[str] = Field(None, description="Discount Card category")
 
 # class EducationProduct(Product):
-#     product_duration: Optional[int] = Field(None, description="Course duration")
-#     product_skills: Optional[str] = Field(None, description="Course skills acquired")
-#     product_location: Optional[str] = Field(None, description="Course location")
+#     job_education_duration: Optional[int] = Field(None, description="Course duration")
+#     job_education_skills: Optional[str] = Field(None, description="Course skills acquired")
+#     job_education_location: Optional[str] = Field(None, description="Course location")
 
 # class AccommodationProduct(Product):
-#     product_location: Optional[str] = Field(None, description="Accommodation location")
-#     product_deposit: Optional[float] = Field(None, description="Accommodation deposit")
-#     product_rooms: Optional[int] = Field(None, description="Accommodation room number")
+#     job_education_location: Optional[str] = Field(None, description="Accommodation location")
+#     accommodation_deposit: Optional[float] = Field(None, description="Accommodation deposit")
+#     accommodation_num_rooms: Optional[int] = Field(None, description="Accommodation room number")
 #     product_style: Optional[str] = Field(None, description="Accommodation style")
 
 class CachedKnowledgeBase:
@@ -87,7 +92,7 @@ class CachedKnowledgeBase:
 
         system_instruction = system_instruction or (
             "You are a customer support specialist. Answer customer questions based ONLY on the information in the product catalogue and the tags catalogue."
-            " If you are unable to extract any information, return 'unknown', but try your best to find the closest category / tags."
+            " If you are unable to extract any information, return None, but try your best to find the closest category / tags."
             " Always be polite, concise, and helpful."
         )
 
@@ -110,7 +115,7 @@ class CachedKnowledgeBase:
             return False
 
     def answer_question(self, question, temperature=0.2):
-        # print(f"Answering question: '{question}'")
+        print(f"Answering question: '{question}'")
         if not self.cache_created:
             raise Exception("Knowledge base not cached. Call load_knowledge_base first.")
 
@@ -130,7 +135,7 @@ class CachedKnowledgeBase:
             print(f"Response received in {end_time - start_time:.2f} seconds.")
 
             gemini_json_response = Product.model_validate_json(response.text)
-            # print(f"gemini_response: {gemini_json_response}")
+            print(f"gemini_response: {gemini_json_response}")
 
             candidates_token_count = response.usage_metadata.candidates_token_count
             prompt_token_count = response.usage_metadata.prompt_token_count
@@ -153,9 +158,17 @@ class CachedKnowledgeBase:
                 print(f"Failed to delete cache: {e}")
                 return False
 
+def truncate_description(description: str, max_words: int = 200) -> str:
+    """Truncate the description to a maximum number of words."""
+    if description:
+        words = description.split()
+        if len(words) > max_words:
+            return ' '.join(words[:max_words]) + '...'
+    return description
+
 def save_product_to_csv(product, product_id: int, product_title: str, product_brand: str,
                         product_offer_price: float, product_offer_percentage: float, product_rating: float,
-                        product_num_interactions: int, product_postcode: str, product_lat: float,
+                        product_num_interactions: int, product_lat: float,
                         product_long: float, product_geohash: str, product_link: str,
                         product_image_link: str, product_forced: bool, product_spider_name: str,
                         product_entity_type: str, input_token, output_token, total_token):
@@ -167,14 +180,14 @@ def save_product_to_csv(product, product_id: int, product_title: str, product_br
         if not file_exists:
             writer.writerow(["product_id", "product_title", "product_brand", "product_offer_price",
                              "product_offer_percentage", "product_rating", "product_num_interactions",
-                             "product_postcode", "product_lat", "product_long", "product_geohash",
+                             "product_lat", "product_long", "product_geohash",
                              "product_link", "product_image_link", "product_forced", "product_spider_name",
                              "product_entity_type", "product_description", "product_search_keywords",
                              "product_categories", "product_tags", "product_type", "product_size",
-                             "product_material", "product_colour", "product_style", "product_cuisine",
-                             "product_venue", "product_salary", "product_education", "product_location",
-                             "product_skills", "product_category", "product_duration", "product_deposit",
-                             "product_rooms", "input_token", "output_token", "total_token"])
+                             "product_material", "product_colour", "food_cuisine",
+                             "event_venue", "job_salary", "job_education", "job_education_location",
+                             "job_education_skills", "product_category", "job_education_duration", "accommodation_deposit",
+                             "accommodation_num_rooms", "accommodation_num_beds", "accommodation_num_bathrooms", "accommodation_student", "accommodation_parking", "accommodation_garden", "accommodation_new", "input_token", "output_token", "total_token"])
 
         def get_attribute(product: Product, attr_name: str, default=None):
             """Get attribute from product safely, returning default if not found."""
@@ -183,7 +196,7 @@ def save_product_to_csv(product, product_id: int, product_title: str, product_br
         product_data = [
             product_id, product_title, product_brand, product_offer_price,
             product_offer_percentage, product_rating, product_num_interactions,
-            product_postcode, product_lat, product_long, product_geohash,
+            product_lat, product_long, product_geohash,
             product_link, product_image_link, product_forced, product_spider_name,
             product_entity_type,
             get_attribute(product, 'product_description'),
@@ -194,17 +207,22 @@ def save_product_to_csv(product, product_id: int, product_title: str, product_br
             get_attribute(product, 'product_size'),
             get_attribute(product, 'product_material'),
             get_attribute(product, 'product_colour'),
-            get_attribute(product, 'product_style'),
-            get_attribute(product, 'product_cuisine'),
-            get_attribute(product, 'product_venue'),
-            get_attribute(product, 'product_salary'),
-            get_attribute(product, 'product_education'),
-            get_attribute(product, 'product_location'),
-            get_attribute(product, 'product_skills'),
+            get_attribute(product, 'food_cuisine'),
+            get_attribute(product, 'event_venue'),
+            get_attribute(product, 'job_salary'),
+            get_attribute(product, 'job_education'),
+            get_attribute(product, 'job_education_location'),
+            get_attribute(product, 'job_education_skills'),
             get_attribute(product, 'product_category'),
-            get_attribute(product, 'product_duration'),
-            get_attribute(product, 'product_deposit'),
-            get_attribute(product, 'product_rooms'),
+            get_attribute(product, 'job_education_duration'),
+            get_attribute(product, 'accommodation_deposit'),
+            get_attribute(product, 'accommodation_num_rooms'),
+            get_attribute(product, 'accommodation_num_beds'),
+            get_attribute(product, 'accommodation_num_bathrooms'),
+            get_attribute(product, 'accommodation_student'),
+            get_attribute(product, 'accommodation_parking'),
+            get_attribute(product, 'accommodation_garden'),
+            get_attribute(product, 'accommodation_new'),
             input_token, output_token, total_token
         ]
 
@@ -214,19 +232,19 @@ def save_product_to_csv(product, product_id: int, product_title: str, product_br
 def create_question(product, image=None):
     base_question = (
         f"Summarize the product using the description and image. "
-        "If you are unable to write the description, then return the original description. If you are not able to write the attributes or keywords, write 'unknown'. "
+        "If you are unable to write the description, then return the original description. If you are not able to write the search keywords, tags, or attributes, return None. "
         "Return: "
-        "1. Product Description - concise but not too short. "
-        "2. Product Search Keywords - for search purposes (return in a list separated by '; '). "
+        "1. Product Description - concise but as detailed as possible. Add things like offer percentages and offer prices if applicable. "
+        "2. Product Search Keywords - choose search keywords so users can find the product. Add at least 15 search keywords (return in a list separated by '; '). "
         "3. Product Categories - choose the best and closest from the category catalogue. "
-        "4. Product Tags - in what scenario are these products most suited for? For example, time of day, weather, what point of interest is it related to? Add as many as you think is suitable from the tags catalogue (return these tags in a list separated by '; '). "
+        "4. Product Tags - in what scenario are these products most suited for? For example, time of day, weather, what point of interest is it related to? Add at least 15 tags from the tags catalogue (return these tags in a list separated by '; '). "
         "5. Product Attributes - Return type of product. "
     )
 
     attributes_mapping = {
-        "shopping": "From the description and image, 6. Product Attributes - Return size of product. 7. Product Attributes - Return material of product. 8. Product Attributes - Return style of product. 9. Product Attributes - Return colour of product. Return None only if these attributes cannot be determined. Otherwise, they are a requirement.",
+        "shopping": "From the description and image, 6. Product Attributes - Return size of product. 7. Product Attributes - Return material of product. accommodation_num_rooms9. Product Attributes - Return colour of product. Return None only if these attributes cannot be determined. Otherwise, they are a requirement.",
 
-        "food": "From the description and image, 6. Product Attributes - Return cuisine of product. 7. Product Attributes - Return style of product. Return None only if these attributes cannot be determined. Otherwise, they are a requirement.",
+        "food": "From the description and image, 6. Product Attributes - Return cuisine of food. Return None only if these attributes cannot be determined. Otherwise, they are a requirement.",
 
         "event": "From the description and image, 6. Product Attributes - Return venue of product. Return None only if these attributes cannot be determined. Otherwise, they are a requirement.",
 
@@ -236,13 +254,13 @@ def create_question(product, image=None):
 
         "education": "From the description and image, 6. Product Attributes - Return duration of product. 7. Product Attributes - Return location of product. 8. Product Attributes - Return duration of product. 9. Product Attributes - Return skills of product. Return None only if these attributes cannot be determined. Otherwise, they are a requirement.",
 
-        "accommodation": "From the description and image, 6. Product Attributes - Return location of product. 7. Product Attributes - Return deposit of product. 8. Product Attributes - Return rooms of product. 9. Product Attributes - Return style of product. Return None only if these attributes cannot be determined. Otherwise, they are a requirement.",
+        "accommodation": "From the description and image, 6. Product Attributes - Return location of the accommodation. 7. Product Attributes - Return deposit of the accommodation. 8. Product Attributes - Return the number of rooms. 9. Product Attributes - Return number of bathrooms. 10. Product Attributes - Return whether this accommodation is specifically for students. 11. Product Attributes - Return whether this accommodation has parking or not. 12. Product Attributes - Return whether this accommodation has a garden or not. 13. Return whether this accommodation is a new building or not. Return None only if these attributes cannot be determined. Otherwise, they are a requirement.",
 
-        "services": "From the description and image, 6. Product Attributes - Return location of product. 7. Product Attributes - Return style of product. Return None only if these attributes cannot be determined. Otherwise, they are a requirement.",
+        "services": "From the description and image, 6. Product Attributes - Return location of product. Return None only if these attributes cannot be determined. Otherwise, they are a requirement.",
 
-        "travel": "From the description and image, 6. Product Attributes - Return location of product. 7. Product Attributes - Return style of product. Return None only if these attributes cannot be determined. Otherwise, they are a requirement.",
+        "travel": "From the description and image, 6. Product Attributes - Return location of product. Return None only if these attributes cannot be determined. Otherwise, they are a requirement.",
 
-        "recommendations": "From the description and image, 6. Product Attributes - Return size of product. 7. Product Attributes - Return material of product. 8. Product Attributes - Return style of product. 9. Product Attributes - Return colour of product. 10. Product Attributes - Return cuisine of product. 11. Product Attributes - Return venue of product. 12. Product Attributes - Return salary of product. 13. Product Attributes - Return education of product. 14. Product Attributes - Return location of product. 15. Product Attributes - Return skills of product. 16. Product Attributes - Return duration of product. 17. Product Attributes - Return category of product. 18. Product Attributes - Return deposit of product. 19. Product Attributes - Return rooms of product. Return None only if these attributes cannot be determined. Otherwise, they are a requirement."
+        "recommendations": "From the description and image, 6. Product Attributes - Return size of product. 7. Product Attributes - Return material of product. accommodation_num_rooms9. Product Attributes - Return colour of product. 10. Product Attributes - Return cuisine of product. 11. Product Attributes - Return venue of product. 12. Product Attributes - Return salary of product. 13. Product Attributes - Return education of product. 14. Product Attributes - Return location of product. 15. Product Attributes - Return skills of product. 16. Product Attributes - Return duration of product. 17. Product Attributes - Return category of product. 18. Product Attributes - Return deposit of product. 19. Product Attributes - Return rooms of product. Return None only if these attributes cannot be determined. Otherwise, they are a requirement."
     }
 
     entity_type = product.product_entity_type
@@ -256,9 +274,11 @@ def create_question(product, image=None):
     
     return base_question
 
+import ast
+
 if __name__ == "__main__":
     df = pd.read_parquet("data/test_df.parquet")
-    batch_size = 1024
+    batch_size = 1
 
     support_bot = CachedKnowledgeBase(
         api_key=API_KEY,
@@ -283,22 +303,24 @@ if __name__ == "__main__":
                 product_offer_percentage = products['product_offer_percentage']
                 product_rating = products['product_rating']
                 product_num_interactions = products['product_num_interactions']
-                product_postcode = products['product_postcode']
                 product_lat = products['product_lat']
                 product_long = products['product_long']
                 product_geohash = products['product_geohash']
                 product_link = products['product_link']
-                product_image_link = products['product_image_link']
+                product_image_link = ast.literal_eval(products['product_image_link'])
                 product_forced = products['product_forced']
                 product_spider_name = products['product_spider_name']
                 product_entity_type = products['product_entity_type']
 
+                print(product_image_link[0])
+                print(product_image_link)
                 # Fetch and process the product image
-                response = requests.get(product_image_link)
+                response = requests.get(product_image_link[0])
                 image = None
                 if response.status_code == 200:
                     try:
                         image = Image.open(BytesIO(response.content)).resize((640, 480))
+                        print("image loaded")
                     except Exception as e:
                         print(f"Error opening image: {e}. Proceeding with description only.")
 
@@ -317,17 +339,25 @@ if __name__ == "__main__":
                 # elif product_entity_type == "accommodation":
                 #     product = AccommodationProduct(product_description=product_description)
 
+                if product_entity_type != "accommodation" and product_entity_type != "event" and len(product_description.split()) > 200:
+                    product_description = truncate_description(product_description)
+                
+                print(product_description, product_entity_type)
+
                 product = Product(product_description=product_description, product_entity_type=product_entity_type)
+                print("Product made")
                 question = create_question(product, image=image)
+                print("Question made")
 
                 # Get the response from the knowledge base (AI model)
+                print("Answering question")
                 product_response, input_token, output_token, total_token = support_bot.answer_question(question)
 
                 if product_response:
                     # Save the product response to CSV
                     save_product_to_csv(
                         product_response, product_id, product_title, product_brand, product_offer_price, 
-                        product_offer_percentage, product_rating, product_num_interactions, product_postcode, 
+                        product_offer_percentage, product_rating, product_num_interactions,
                         product_lat, product_long, product_geohash, product_link, product_image_link, 
                         product_forced, product_spider_name, product_entity_type, input_token, output_token, total_token
                     )
